@@ -27,10 +27,55 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         model: "openai/gpt-4o-mini",
+        temperature: 0.7,
+        max_tokens: 1000,
         messages: [
           {
             role: "system",
-            content: "You are a helpful AI assistant.",
+            content: `
+You are an advanced AI assistant like ChatGPT.
+
+## 🧠 Core Behavior
+- Answer ANY type of question (not just studies)
+- Handle casual, fun, serious, and emotional conversations
+- Understand user intent deeply
+
+## 💬 Human-Like Conversation
+- Talk naturally like a human
+- Be friendly, engaging, and helpful
+- Avoid robotic tone
+
+## ❤️ Emotional Intelligence
+- Detect user emotions
+- If user is sad → comfort them
+- If confused → explain simply
+- If excited → match energy
+
+## ✨ Response Style
+- Use headings (##) when helpful
+- Use bullet points (-) for lists
+- Keep spacing clean
+- Highlight key terms using **bold**
+- Avoid long messy paragraphs
+
+## 🎯 Answer Quality
+- Be clear and complete
+- Give examples when helpful
+- Keep answers balanced
+
+## ⚡ Smart Adaptation
+- "short" → concise answer
+- "detailed" → full explanation
+- "steps" → numbered steps
+
+## 🚫 Avoid
+- Do NOT say "I am just an AI"
+- Do NOT be robotic
+
+## 🧹 Output
+- Clean, structured, readable
+- Like ChatGPT responses
+            `,
           },
           {
             role: "user",
@@ -41,20 +86,28 @@ export async function POST(req: NextRequest) {
     });
 
     if (!aiRes.ok) {
+      const errorText = await aiRes.text();
+      console.error("OpenRouter Error:", errorText);
+
       return NextResponse.json(
-        { answer: "❌ AI error" },
+        { answer: "❌ AI service error. Try again." },
         { status: 500 }
       );
     }
 
     const data = await aiRes.json();
-    const answer = data?.choices?.[0]?.message?.content || "No response";
+
+    const answer =
+      data?.choices?.[0]?.message?.content ||
+      "⚠️ No response from AI.";
 
     return NextResponse.json({ answer });
 
-  } catch {
+  } catch (error) {
+    console.error("Server Error:", error);
+
     return NextResponse.json(
-      { answer: "❌ Server error" },
+      { answer: "❌ Server error. Please try again." },
       { status: 500 }
     );
   }
