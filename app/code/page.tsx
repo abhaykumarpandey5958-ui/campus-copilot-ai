@@ -105,7 +105,7 @@ ${input}`,
                 <ReactMarkdown
                   remarkPlugins={[remarkGfm]}
                   components={{
-                    code({ inline, className, children }) {
+                    code({ inline, className, children }: any) {
                       const match = /language-(\w+)/.exec(className || "");
                       const code = String(children).replace(/\n$/, "");
 
