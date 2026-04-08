@@ -20,20 +20,16 @@ export default function CodeAI() {
 
   const chatRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
+  useEffect(() => {
     if (chatRef.current) {
       chatRef.current.scrollTop = chatRef.current.scrollHeight;
     }
-  };
-
-  useEffect(() => {
-    scrollToBottom();
   }, [messages]);
 
   const sendMessage = async () => {
     if (!input.trim()) return;
 
-    const userMsg = { role: "user" as const, content: input };
+    const userMsg: Message = { role: "user", content: input };
     const updated = [...messages, userMsg];
 
     setMessages(updated);
@@ -47,10 +43,14 @@ export default function CodeAI() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          question: `You are a coding expert. Always respond with:
-1. Short explanation
-2. Clean formatted code block
+          question: `You are an expert programmer.
 
+Rules:
+- Give short explanation
+- Then give clean code in proper code block with language
+- No extra text
+
+User request:
 ${input}`,
         }),
       });
@@ -64,7 +64,7 @@ ${input}`,
     } catch {
       setMessages([
         ...updated,
-        { role: "ai", content: "Error occurred" },
+        { role: "ai", content: "❌ Error occurred" },
       ]);
     }
 
@@ -140,7 +140,11 @@ ${input}`,
                         );
                       }
 
-                      return <code className="bg-black/40 px-1">{children}</code>;
+                      return (
+                        <code className="bg-black/40 px-1 rounded">
+                          {children}
+                        </code>
+                      );
                     },
                   }}
                 >
