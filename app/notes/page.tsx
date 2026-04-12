@@ -82,7 +82,9 @@ export default function NotesPage() {
                 fullContent += delta;
                 setSummary(fullContent);
               }
-            } catch (e) {}
+            } catch {
+              // Skip partial JSON chunks
+            }
           }
         }
       }

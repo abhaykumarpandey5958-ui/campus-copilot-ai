@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { 
   motion, 
   AnimatePresence 
@@ -35,6 +35,17 @@ export default function QuizPage() {
   const [finished, setFinished] = useState(false);
   const router = useRouter();
 
+  const nextQuestion = useCallback(() => {
+    setSelected(null);
+    setTimer(15);
+
+    if (current + 1 < quiz.length) {
+      setCurrent((prev) => prev + 1);
+    } else {
+      setFinished(true);
+    }
+  }, [current, quiz.length]);
+
   // ⏳ TIMER LOGIC
   useEffect(() => {
     if (!quiz.length || finished || loading) return;
@@ -46,7 +57,7 @@ export default function QuizPage() {
 
     const t = setTimeout(() => setTimer(timer - 1), 1000);
     return () => clearTimeout(t);
-  }, [timer, quiz, finished, loading]);
+  }, [timer, quiz, finished, loading, nextQuestion]);
 
   // 🚀 GENERATE QUIZ
   const generateQuiz = async () => {
@@ -81,16 +92,7 @@ export default function QuizPage() {
     setLoading(false);
   };
 
-  const nextQuestion = () => {
-    setSelected(null);
-    setTimer(15);
 
-    if (current + 1 < quiz.length) {
-      setCurrent((prev) => prev + 1);
-    } else {
-      setFinished(true);
-    }
-  };
 
   const handleAnswer = (opt: string) => {
     if (selected || finished) return;
@@ -188,7 +190,7 @@ export default function QuizPage() {
             />
             <div className="text-center space-y-2">
                 <h3 className="text-2xl font-bold animate-pulse">Synthesizing Dataset...</h3>
-                <p className="text-gray-500 font-medium tracking-wide italic">Generating questions based on "{topic}"</p>
+                <p className="text-gray-500 font-medium tracking-wide italic">Generating questions based on &quot;{topic}&quot;</p>
             </div>
           </div>
         )}

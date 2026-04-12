@@ -2,12 +2,10 @@
 
 import { useState, useRef, useEffect } from "react";
 import { 
-  Send, 
   Sparkles, 
   ChevronLeft, 
   BookOpen, 
   Zap, 
-  Check, 
   Award,
   BookOpenCheck
 } from "lucide-react";

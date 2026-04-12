@@ -29,7 +29,7 @@ export default function Dashboard() {
     if (!storedUser) {
       router.push("/login");
     } else {
-      setUser(storedUser);
+      queueMicrotask(() => setUser(storedUser));
     }
   }, [router]);
 

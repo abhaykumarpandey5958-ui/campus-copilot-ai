@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Send,
   Menu,
@@ -47,13 +47,14 @@ export default function ChatPage() {
 
   const chatRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<any>(null); // eslint-disable-line @typescript-eslint/no-explicit-any
   const router = useRouter();
 
   const currentChat = chats.find(c => c.id === currentId);
 
   // Initialize Speech Recognition
   useEffect(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const SR = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
     if (SR) {
       const rec = new SR();
@@ -66,14 +67,18 @@ export default function ChatPage() {
         setIsListening(false);
         // Auto-restart if in Voice Mode and not currently generating/speaking
         if (isVoiceMode && !loading && !speechSynthesis.speaking) {
-          try { rec.start(); } catch (e) {}
+          try { rec.start(); } catch { /* ignore */ }
         }
       };
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       rec.onresult = (e: any) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const transcript = Array.from(e.results)
-          .map((result: any) => (result as any)[0])
-          .map((result) => (result as any).transcript)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .map((result: any) => result[0])
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .map((result: any) => result.transcript)
           .join("");
 
         setInput(transcript);
@@ -177,24 +182,23 @@ export default function ChatPage() {
     }
   };
 
-  const speak = (text: string) => {
+  const speak = (raw: string) => {
     if (!voiceOn) return;
     speechSynthesis.cancel();
-    // remove markdown tags for clearer speech
-    let cleanText = text.replace(/#/g, "").replace(/\*/g, "").replace(/-/g, "").replace(/`/g, "");
+    const cleanText = raw.replace(/[#*_`>-]/g, "").replace(/\n/g, " ");
     const utterance = new SpeechSynthesisUtterance(cleanText);
     
     utterance.onend = () => {
       // Resume listening if in voice mode
       if (isVoiceMode) {
-        try { recognitionRef.current?.start(); } catch (e) {}
+        try { recognitionRef.current?.start(); } catch { /* ignore */ }
       }
     };
 
     speechSynthesis.speak(utterance);
   };
 
-  const sendMessage = async (overrideInput?: string) => {
+  const sendMessage = useCallback(async (overrideInput?: string) => {
     const textToSend = overrideInput || input;
     if ((!textToSend.trim() && !imagePreview) || !currentChat) return;
 
@@ -260,18 +264,20 @@ export default function ChatPage() {
           buffer = buffer.slice(eolIndex + 1);
           
           if (line.startsWith("data: ") && !line.includes("[DONE]")) {
-             try {
-               const parsed = JSON.parse(line.slice(6)); // strip "data: "
-               const delta = parsed.choices?.[0]?.delta?.content || "";
-               if (delta) {
-                 fullAIContent += delta;
-                 setStreamingAIContent(fullAIContent);
-               }
-             } catch (e) {
-               // partial or broken packet, ignore it safely
-             }
+            try {
+              const parsed = JSON.parse(line.slice(6));
+              const delta = parsed.choices?.[0]?.delta?.content || "";
+              if (delta) {
+                fullAIContent += delta;
+                setStreamingAIContent(fullAIContent);
+              }
+            } catch {
+              // partial or broken packet, ignore it safely
+            }
           }
         }
+      }
+
       // Finalize the chat history with the full content
       setChats(prev =>
         prev.map(c =>
@@ -299,7 +305,7 @@ export default function ChatPage() {
     }
 
     setLoading(false);
-  };
+  }, [input, imagePreview, currentChat, isVoiceMode, speak]);
 
   return (
     <div className={`h-screen relative overflow-hidden transition-colors duration-500 flex ${dark ? "bg-[#050505] text-white" : "bg-[#f5f8fa] text-gray-900"}`}>
@@ -332,11 +338,11 @@ export default function ChatPage() {
               <Mic size={64} className="text-white" />
             </motion.div>
 
-            <h2 className="text-3xl font-bold mb-4 tracking-tight">
-              {loading ? "AI is thinking..." : isListening ? "Listening..." : "Waiting..."}
+            <h2 className="text-3xl font-black mb-4 tracking-tighter">
+              What&apos;s on your mind?
             </h2>
             <p className="text-gray-400 max-w-sm mb-12 text-lg italic">
-              "{input || "Speak now..."}"
+              &quot;{input || "Speak now..."}&quot;
             </p>
 
             <button
@@ -468,7 +474,7 @@ export default function ChatPage() {
                 <ImageIcon size={48} className="opacity-70 text-blue-500" />
               </div>
               <h2 className="text-2xl font-bold tracking-tight">How can I assist you today?</h2>
-              <p className="max-w-md text-sm sm:text-base opacity-80">Upload an image, speak your mind, or ask any question. I'm ready to help!</p>
+              <p className="max-w-md text-sm sm:text-base opacity-80">Upload an image, speak your mind, or ask any question. I&apos;m ready to help!</p>
             </motion.div>
           )}
 

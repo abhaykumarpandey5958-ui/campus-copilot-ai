@@ -3,11 +3,9 @@
 import { useState, useRef, useEffect } from "react";
 import { 
   Send, 
-  Code2, 
   Copy, 
   Check, 
   ChevronLeft, 
-  Sparkles, 
   Terminal,
   Cpu,
   Trash2
@@ -99,7 +97,9 @@ User request: ${input}`,
                 fullContent += delta;
                 setStreamingContent(fullContent);
               }
-            } catch (e) {}
+            } catch {
+              // Ignore partial JSON
+            }
           }
         }
       }
@@ -107,7 +107,7 @@ User request: ${input}`,
       // Finalize history
       setMessages([...updated, { role: "ai", content: fullContent }]);
       setStreamingContent(null);
-    } catch (err) {
+    } catch {
       setMessages([...updated, { role: "ai", content: "❌ Error: Failed to generate code. Please check your connection." }]);
     }
 
@@ -269,7 +269,13 @@ User request: ${input}`,
   );
 }
 
-const MessageItem = React.memo(({ msg, copyCode, copiedIndex, i, isStreaming = false }: any) => {
+const MessageItem = React.memo(({ msg, copyCode, copiedIndex, i, isStreaming = false }: { 
+  msg: Message, 
+  copyCode: (code: string, id: string) => void, 
+  copiedIndex: string | null, 
+  i: number, 
+  isStreaming?: boolean 
+}) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -285,7 +291,8 @@ const MessageItem = React.memo(({ msg, copyCode, copiedIndex, i, isStreaming = f
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{
-                  code({ inline, className, children }: any) {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  code({ inline, className, children, ...props }: any) {
                     const match = /language-(\w+)/.exec(className || "");
                     const code = String(children).replace(/\n$/, "");
                     const codeId = `code-${i}-${match?.[1] || 'text'}`;
@@ -307,6 +314,7 @@ const MessageItem = React.memo(({ msg, copyCode, copiedIndex, i, isStreaming = f
                             </button>
                           </div>
                           <SyntaxHighlighter
+                            {...props}
                             style={oneDark}
                             language={match?.[1] || "javascript"}
                             customStyle={{ margin: 0, padding: '1.25rem', fontSize: '0.9rem', background: 'transparent' }}

@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Construct user content payload
-    let userContent: any = question;
+    let userContent: string | { type: string; text?: string; image_url?: { url: string } }[] = question;
     
     if (image) {
       userContent = [];
@@ -90,7 +90,7 @@ You are an advanced AI assistant with vision capabilities.
       );
     }
 
-    return new NextResponse(aiRes.body as any, {
+    return new NextResponse(aiRes.body as ReadableStream, {
       headers: {
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",

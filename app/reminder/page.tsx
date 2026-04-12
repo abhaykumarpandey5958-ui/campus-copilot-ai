@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import {
   Bell,
   Trash,
@@ -11,8 +11,7 @@ import {
   Calendar,
   Clock,
   Zap,
-  Volume2,
-  X
+  Volume2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -34,7 +33,9 @@ export default function ReminderPage() {
   // Load reminders
   useEffect(() => {
     const saved = localStorage.getItem("reminders");
-    if (saved) setReminders(JSON.parse(saved));
+    if (saved) {
+      queueMicrotask(() => setReminders(JSON.parse(saved)));
+    }
     
     if (Notification.permission !== "granted") {
       Notification.requestPermission();

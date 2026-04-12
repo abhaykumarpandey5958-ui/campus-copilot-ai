@@ -11,7 +11,7 @@ export default function Home() {
     if (!storedUser) {
       window.location.href = "/login";
     } else {
-      setUser(storedUser);
+      queueMicrotask(() => setUser(storedUser));
     }
   }, []);
 
