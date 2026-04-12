@@ -1,7 +1,3 @@
-export const runtime = "nodejs";
-
-import { NextResponse } from "next/server";
-
 export async function POST(req: Request) {
   try {
     const { topic } = await req.json();
@@ -11,30 +7,47 @@ export async function POST(req: Request) {
       headers: {
         Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
         "Content-Type": "application/json",
+        "HTTP-Referer": "https://campuscilot.vercel.app",
+        "X-Title": "Campus Copilot",
       },
       body: JSON.stringify({
-        model: "openai/gpt-3.5-turbo",
+        model: "nvidia/nemotron-nano-12b-v2-vl:free",
         messages: [
           {
             role: "user",
-            content: `Create 5 MCQ questions on ${topic}.
-Return ONLY JSON:
+            content: `Create 5 Multiple Choice Questions (MCQ) on ${topic}.
+            
+Return ONLY a valid JSON array of objects. 
+JSON Format:
 [
- { "question": "", "options": ["A","B","C","D"], "answer": "" }
-]`,
+ { "question": "string", "options": ["A","B","C","D"], "answer": "correct_option_string" }
+]
+
+Do not include any other text.`,
           },
         ],
       }),
     });
 
-    const data = await response.json();
+    if (!response.ok) {
+        const err = await response.text();
+        console.error("Quiz API Error:", err);
+        return Response.json({ error: "Failed to generate quiz" }, { status: 500 });
+    }
 
-    return NextResponse.json({
-      quiz: data.choices?.[0]?.message?.content || "[]",
+    const data = await response.json();
+    let content = data.choices?.[0]?.message?.content || "[]";
+    
+    // basic cleanup in case AI includes markdown code blocks
+    content = content.replace(/```json/g, "").replace(/```/g, "").trim();
+
+    return Response.json({
+      quiz: content,
     });
 
   } catch (err) {
-    return NextResponse.json(
+    console.error("Quiz Server Error:", err);
+    return Response.json(
       { error: "Failed" },
       { status: 500 }
     );

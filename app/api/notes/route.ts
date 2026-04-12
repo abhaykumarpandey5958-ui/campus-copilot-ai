@@ -24,27 +24,37 @@ Format:
         headers: {
           Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
           "Content-Type": "application/json",
+          "HTTP-Referer": "https://campuscilot.vercel.app",
+          "X-Title": "Campus Copilot",
         },
         body: JSON.stringify({
-          model: "openai/gpt-4o-mini",
+          model: "nvidia/nemotron-nano-12b-v2-vl:free",
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: text },
           ],
-          max_tokens: 1000,
+          max_tokens: 1500,
+          stream: true,
         }),
       }
     );
 
-    const data = await res.json();
+    if (!res.ok) {
+        const err = await res.text();
+        console.error("Notes OpenRouter Error:", err);
+        return Response.json({ error: "API Failure" }, { status: 500 });
+    }
 
-    return Response.json({
-      answer:
-        data?.choices?.[0]?.message?.content ||
-        "No response",
+    return new Response(res.body, {
+        headers: {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive"
+        }
     });
 
   } catch (error) {
+    console.error("Notes Server Error:", error);
     return Response.json(
       { error: "Server error" },
       { status: 500 }

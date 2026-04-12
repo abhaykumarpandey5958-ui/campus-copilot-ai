@@ -1,5 +1,3 @@
-export const runtime = "nodejs";
-
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
@@ -14,13 +12,13 @@ export async function POST(req: Request) {
     }
 
     const prompt = `
-Answer this question for ${type}-mark exam.
+Answer this question for a ${type}-mark exam.
 
 Format:
-- Title
-- Definition
-- Key Points
-- Conclusion
+## Title
+## Definition
+## Key Points
+## Conclusion
 
 Question: ${question}
 `;
@@ -30,19 +28,30 @@ Question: ${question}
       headers: {
         Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
         "Content-Type": "application/json",
+        "HTTP-Referer": "https://campuscilot.vercel.app",
+        "X-Title": "Campus Copilot",
       },
       body: JSON.stringify({
-        model: "openai/gpt-3.5-turbo",
+        model: "nvidia/nemotron-nano-12b-v2-vl:free",
         messages: [
           { role: "user", content: prompt }
         ],
+        stream: true,
       }),
     });
 
-    const data = await response.json();
+    if (!response.ok) {
+        const err = await response.text();
+        console.error("AI Error:", err);
+        return NextResponse.json({ error: "API Failure" }, { status: 500 });
+    }
 
-    return NextResponse.json({
-      answer: data.choices?.[0]?.message?.content || "No answer",
+    return new Response(response.body, {
+        headers: {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive"
+        }
     });
 
   } catch (error) {

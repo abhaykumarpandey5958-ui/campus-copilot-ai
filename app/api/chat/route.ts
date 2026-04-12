@@ -4,10 +4,11 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const question: string = body?.question?.trim();
+    const image: string | undefined = body?.image; // Expected to be a base64 string "data:image/jpeg;base64,..."
 
-    if (!question) {
+    if (!question && !image) {
       return NextResponse.json(
-        { answer: "⚠️ Please enter a question." },
+        { answer: "⚠️ Please enter a question or upload an image." },
         { status: 400 }
       );
     }
@@ -19,67 +20,61 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Construct user content payload
+    let userContent: any = question;
+    
+    if (image) {
+      userContent = [];
+      if (question) {
+        userContent.push({ type: "text", text: question });
+      }
+      userContent.push({
+        type: "image_url",
+        image_url: { url: image },
+      });
+    }
+
     const aiRes = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
         "Content-Type": "application/json",
+        "HTTP-Referer": "https://campuscilot.vercel.app",
+        "X-Title": "Campus Copilot",
       },
       body: JSON.stringify({
-        model: "openai/gpt-4o-mini",
+        model: "nvidia/nemotron-nano-12b-v2-vl:free",
         temperature: 0.7,
-        max_tokens: 1000,
+        max_tokens: 1500,
+        stream: true,
         messages: [
           {
             role: "system",
             content: `
-You are an advanced AI assistant like ChatGPT.
+You are an advanced AI assistant with vision capabilities.
 
 ## 🧠 Core Behavior
 - Answer ANY type of question (not just studies)
 - Handle casual, fun, serious, and emotional conversations
-- Understand user intent deeply
+- If an image is provided, analyze it deeply and answer the user's prompt based on the image.
 
 ## 💬 Human-Like Conversation
 - Talk naturally like a human
 - Be friendly, engaging, and helpful
-- Avoid robotic tone
-
-## ❤️ Emotional Intelligence
-- Detect user emotions
-- If user is sad → comfort them
-- If confused → explain simply
-- If excited → match energy
 
 ## ✨ Response Style
 - Use headings (##) when helpful
 - Use bullet points (-) for lists
-- Keep spacing clean
 - Highlight key terms using **bold**
 - Avoid long messy paragraphs
 
-## 🎯 Answer Quality
-- Be clear and complete
-- Give examples when helpful
-- Keep answers balanced
-
-## ⚡ Smart Adaptation
-- "short" → concise answer
-- "detailed" → full explanation
-- "steps" → numbered steps
-
-## 🚫 Avoid
-- Do NOT say "I am just an AI"
-- Do NOT be robotic
-
 ## 🧹 Output
-- Clean, structured, readable
-- Like ChatGPT responses
+- Clean, structured, readable markdown
             `,
           },
           {
             role: "user",
-            content: question,
+            content: userContent,
           },
         ],
       }),
@@ -95,13 +90,13 @@ You are an advanced AI assistant like ChatGPT.
       );
     }
 
-    const data = await aiRes.json();
-
-    const answer =
-      data?.choices?.[0]?.message?.content ||
-      "⚠️ No response from AI.";
-
-    return NextResponse.json({ answer });
+    return new NextResponse(aiRes.body as any, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive"
+      }
+    });
 
   } catch (error) {
     console.error("Server Error:", error);
